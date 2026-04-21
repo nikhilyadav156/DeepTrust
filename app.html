@@ -1052,13 +1052,14 @@ footer span {
           </svg>
           <div class="upload-title">Verify Media Authenticity</div>
           <div class="upload-subtitle">Check if a photo or video contains AI-generation or deepfake artifacts</div>
-          <button class="upload-btn">
+          <button class="upload-btn" onclick="document.getElementById('media-upload-home').click()">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
-            Select a file
+            <span id="upload-btn-text-home">Select a file</span>
           </button>
-          <div class="upload-hint">Supports JPG, PNG, WEBP, MP4 (Max 10MB)</div>
+          <input type="file" id="media-upload-home" style="display:none;" accept="video/*,image/*" onchange="uploadDeepfake(this, 'upload-btn-text-home', 'upload-hint-home')">
+          <div class="upload-hint" id="upload-hint-home">Supports JPG, PNG, WEBP, MP4 (Max 10MB)</div>
         </div>
       </div>
     </div>
@@ -1242,7 +1243,11 @@ footer span {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <div class="upload-title">Verify Media Authenticity</div>
-          <button class="upload-btn">Select a file</button>
+          <button class="upload-btn" onclick="document.getElementById('media-upload-analyse').click()">
+            <span id="upload-btn-text-analyse">Select a file</span>
+          </button>
+          <input type="file" id="media-upload-analyse" style="display:none;" accept="video/*,image/*" onchange="uploadDeepfake(this, 'upload-btn-text-analyse', 'upload-hint-analyse')">
+          <div class="upload-hint" id="upload-hint-analyse" style="margin-top:10px; font-size:13px; color:var(--text-muted);">Supports JPG, PNG, WEBP, MP4 (Max 10MB)</div>
         </div>
       </div>
     </div>
@@ -1331,24 +1336,26 @@ footer span {
     document.getElementById('res-counter-box').innerText = 'Generating counter-narrative...';
 
     try {
-      const response = await fetch('/api/analyze', {
+      const response = await fetch('http://localhost:5000/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ claim: claim })
+        body: JSON.stringify({ text: claim }) // Team's node API uses 'text', not 'claim'
       });
       const data = await response.json();
       
-      // Update UI
+      const analysis = data.success ? data.data : data.fallback || {};
+      
+      // Update UI mapping node API
       let pillClass = 'pill-unverified';
-      if (data.verdict.toLowerCase() === 'false') pillClass = 'pill-false';
-      if (data.verdict.toLowerCase() === 'verified') pillClass = 'pill-verified';
+      if (analysis.label === 'Fake') pillClass = 'pill-false';
+      if (analysis.label === 'Real') pillClass = 'pill-verified';
       
-      document.getElementById('res-verdict-header').innerHTML = `<span class="verdict-pill ${pillClass}">${data.verdict}</span>`;
-      document.getElementById('res-motive-text').innerText = data.motive || 'Could not determine motive.';
-      document.getElementById('res-score-big').innerText = data.score !== undefined ? data.score : '--';
+      document.getElementById('res-verdict-header').innerHTML = `<span class="verdict-pill ${pillClass}">${analysis.label || 'Unverified'}</span>`;
+      document.getElementById('res-motive-text').innerText = analysis.intent || 'Could not determine motive.';
+      document.getElementById('res-score-big').innerText = analysis.truthScore !== undefined ? analysis.truthScore : '--';
       
-      let prefix = data.verdict.toUpperCase() + ': ';
-      document.getElementById('res-counter-box').innerHTML = `<strong>${prefix}</strong> ${data.counter_narrative || 'No counter narrative provided.'}`;
+      let prefix = (analysis.label || 'VERDICT').toUpperCase() + ': ';
+      document.getElementById('res-counter-box').innerHTML = `<strong>${prefix}</strong> ${analysis.explanation || 'No explanation provided.'}`;
 
       btnEl.innerText = 'Analysis Complete';
       btnEl.style.background = 'var(--green)';
@@ -1390,6 +1397,48 @@ footer span {
       setTimeout(() => toast.remove(), 400);
     }, 5000);
   }
+
+  // File Upload Logic
+  async function uploadDeepfake(inputEl, btnTextId, hintId) {
+    const file = inputEl.files[0];
+    if (!file) return;
+
+    const btnText = document.getElementById(btnTextId);
+    const hintText = document.getElementById(hintId);
+    
+    btnText.innerText = 'Uploading...';
+    hintText.innerText = 'Analyzing media frames...';
+    
+    const formData = new FormData();
+    formData.append('video', file);
+
+    try {
+      const res = await fetch('http://localhost:5000/api/deepfake-detect', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.error) throw new Error(data.error);
+      
+      btnText.innerText = `Result: ${data.result}`;
+      hintText.innerText = `Confidence: ${data.confidence} | ${data.message}`;
+    } catch (err) {
+      console.error(err);
+      btnText.innerText = 'Upload Failed';
+      hintText.innerText = 'Error processing video.';
+    }
+  }
+
+  // Allow Enter key to trigger analysis on Home
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('home-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') analyzeClaim('home-input', e.target.nextElementSibling);
+    });
+    document.getElementById('analyse-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') analyzeClaim('analyse-input', e.target.nextElementSibling);
+    });
+  });
 
   setInterval(showToast, 60000); // 1 minute
   setTimeout(showToast, 5000); // First toast quickly for demo
