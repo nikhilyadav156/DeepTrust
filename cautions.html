@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DeepTrust - Detailed Cautions & Stats</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* Same root variables and base body styling as app.html */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+    --red: #e11d48; --red-light: #f43f5e; --orange: #ea580c;
+    --green: #16a34a; --green-light: #22c55e; --blue: #2563eb; --purple: #9333ea;
+    --bg-main: #f8fafc; --surface: #ffffff; --surface2: #f1f5f9;
+    --border: #e2e8f0; --text: #0f172a; --text-muted: #64748b;
+    --font: 'Sora', sans-serif; --mono: 'JetBrains Mono', monospace;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+}
+body {
+    font-family: var(--font); background: var(--bg-main);
+    color: var(--text); min-height: 100vh; font-size: 14px;
+}
+header {
+    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px);
+    padding: 0 24px; display: flex; align-items: center; justify-content: space-between;
+    height: 60px; border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm);
+}
+.logo h1 { font-size: 24px; font-weight: 700; background: linear-gradient(90deg, var(--red), var(--orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.header-right { font-size: 12px; color: var(--text-muted); font-family: var(--mono); font-weight: 500; }
+.container { max-width: 900px; margin: 40px auto; padding: 0 24px; }
+.back-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; text-decoration: none; color: var(--text); font-weight: 600;
+    margin-bottom: 24px; transition: all 0.2s;
+}
+.back-btn:hover { background: var(--surface2); transform: translateY(-1px); }
+.page-title { font-size: 28px; font-weight: 700; margin-bottom: 24px; }
+.caution-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow-sm);
+}
+.caution-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.caution-tag { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; font-family: var(--mono); }
+.tag-blue { background: #eff6ff; color: var(--blue); }
+.tag-orange { background: #ffedd5; color: var(--orange); }
+.tag-red { background: #fee2e2; color: var(--red); }
+.tag-green { background: #dcfce7; color: var(--green); }
+.caution-title { font-size: 18px; font-weight: 600; }
+.caution-desc { color: var(--text-muted); line-height: 1.6; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><h1>DeepTrust</h1></div>
+  <div class="header-right">Detailed Analysis & Cautions</div>
+</header>
+
+<div class="container">
+  <a href="app.html" class="back-btn">← Back to Dashboard</a>
+  <h2 class="page-title">Today's Detailed Stats & Cautions</h2>
+
+  <div class="caution-card">
+    <div class="caution-header">
+      <span class="caution-tag tag-blue">Analysed</span>
+      <h3 class="caution-title">47 Claims Processed</h3>
+    </div>
+    <p class="caution-desc">We have analysed 47 claims today across major social media platforms. All queries were cross-referenced with over 100+ trusted public health and news databases.</p>
+  </div>
+
+  <div class="caution-card" style="border-left: 4px solid var(--orange);">
+    <div class="caution-header">
+      <span class="caution-tag tag-orange">Caution</span>
+      <h3 class="caution-title">23 High Virality Claims</h3>
+    </div>
+    <p class="caution-desc"><strong>WARNING:</strong> These claims are experiencing rapid organic spread on encrypted platforms (e.g. WhatsApp, Telegram). Do not forward these messages without verification. They employ strong emotional triggers designed to bypass critical thinking.</p>
+  </div>
+
+  <div class="caution-card" style="border-left: 4px solid var(--red);">
+    <div class="caution-header">
+      <span class="caution-tag tag-red">Alert</span>
+      <h3 class="caution-title">31 False Claims Detected</h3>
+    </div>
+    <p class="caution-desc"><strong>CRITICAL:</strong> 31 claims have been conclusively proven false by independent fact-checkers. Sharing this information may violate platform terms of service regarding misinformation. Please refer to our detailed sentence-level autopsy on the dashboard for counter-narratives.</p>
+  </div>
+
+  <div class="caution-card" style="border-left: 4px solid var(--green);">
+    <div class="caution-header">
+      <span class="caution-tag tag-green">Verified</span>
+      <h3 class="caution-title">16 Verified True Statements</h3>
+    </div>
+    <p class="caution-desc">These statements are factually accurate and backed by credible sources. It is safe to share this information. Authentic news typically has a slower virality curve than sensationalized misinformation.</p>
+  </div>
+
+</div>
+</body>
+</html>
