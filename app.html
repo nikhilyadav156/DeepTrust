@@ -1302,50 +1302,154 @@ footer span {
 
 <div class="toast-container" id="toast-container"></div>
 <script>
-  // Nav Tab switching
+  // ── NAV TAB SWITCHING ──────────────────────────────────────────
   function switchTab(tabId, el) {
     document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
-    if(el) el.classList.add('active');
+    if (el) el.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
     const target = document.getElementById(tabId);
-    if(target) target.classList.add('active');
+    if (target) target.classList.add('active');
   }
 
-  // Analyse Button
-  function startAnalysis() {
+  // ── BACKEND URL ────────────────────────────────────────────────
+  const API_BASE = 'http://localhost:5000';
+
+  // ── MAIN ANALYSIS FUNCTION ─────────────────────────────────────
+  async function startAnalysis() {
+    const input = document.querySelector('.search-section input');
     const btn = document.getElementById('analyse-btn');
-    const originalText = btn.innerText;
+    const text = input.value.trim();
+
+    if (!text || text.length < 10) {
+      showToastMsg('Input too short', 'Please enter at least 10 characters to analyse.');
+      return;
+    }
+
+    // Button loading state
     btn.innerText = 'Analysing...';
     btn.style.opacity = '0.7';
-    setTimeout(() => {
-      btn.innerText = 'Analysis Complete';
+    btn.disabled = true;
+
+    try {
+      // Call all 3 APIs in parallel
+      const [analyseRes, viralityRes] = await Promise.all([
+        fetch(`${API_BASE}/api/analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        }),
+        fetch(`${API_BASE}/api/virality`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        })
+      ]);
+
+      const analyseData = await analyseRes.json();
+      const viralityData = await viralityRes.json();
+
+      // Use real data or fallback
+      const analysis = analyseData.success ? analyseData.data : analyseData.fallback;
+      const virality = viralityData.success ? viralityData.data : viralityData.fallback;
+
+      // Update the UI
+      renderResults(text, analysis, virality);
+
+      btn.innerText = 'Analysis Complete ✓';
       btn.style.background = 'var(--green)';
       btn.style.opacity = '1';
+
       setTimeout(() => {
-        btn.innerText = originalText;
+        btn.innerText = 'Analyse now';
+        btn.style.background = 'linear-gradient(135deg, var(--red), #be123c)';
+        btn.disabled = false;
+      }, 3000);
+
+    } catch (err) {
+      btn.innerText = 'Error — Retry';
+      btn.style.background = 'var(--orange)';
+      btn.style.opacity = '1';
+      btn.disabled = false;
+      showToastMsg('Connection Error', 'Cannot reach backend. Is your server running on port 5000?');
+
+      setTimeout(() => {
+        btn.innerText = 'Analyse now';
         btn.style.background = 'linear-gradient(135deg, var(--red), #be123c)';
       }, 3000);
-    }, 2000);
+    }
   }
 
+  // ── RENDER RESULTS INTO THE PAGE ───────────────────────────────
+  function renderResults(text, analysis, virality) {
 
-  // Popups every 2.5 mins
-  const popupMessages = [
-    { title: 'New Trend Detected', desc: 'A new viral video about banking is circulating. Our AI is analysing it now.' },
-    { title: 'Fact Check Updated', desc: 'The claim about "onion cure" has been updated with a new WHO statement.' },
-    { title: 'System Alert', desc: 'Deepfake analysis module has been updated to version 2.4.' }
-  ];
-  let msgIndex = 0;
+    // 1. Update the claim text
+    document.querySelector('.result-claim').innerText = text;
+    document.querySelector('.result-meta').innerText =
+      `Analysed just now · Truth Score: ${analysis.truthScore}/100 · Intent: ${analysis.intent}`;
 
-  function showToast() {
-    const data = popupMessages[msgIndex % popupMessages.length];
-    msgIndex++;
+    // 2. Update verdict pills
+    const pillContainer = document.querySelector('.result-header');
+    const labelColor = {
+      'Real': 'pill-verified',
+      'Fake': 'pill-false',
+      'Uncertain': 'pill-unverified'
+    };
+    pillContainer.innerHTML = `
+      <span class="verdict-pill ${labelColor[analysis.label] || 'pill-unverified'}">
+        ${analysis.label}
+      </span>
+      <span class="verdict-pill pill-unverified">
+        Truth Score: ${analysis.truthScore}/100
+      </span>
+      <span class="verdict-pill ${virality.trend === 'High' ? 'pill-false' : virality.trend === 'Medium' ? 'pill-unverified' : 'pill-verified'}">
+        Virality: ${virality.trend}
+      </span>
+    `;
+
+    // 3. Update sentence autopsy with the explanation
+    document.querySelector('.autopsy-text').innerHTML =
+      `<span class="${analysis.label === 'Fake' ? 's-false' : analysis.label === 'Real' ? 's-verified' : 's-unverified'}">
+        ${analysis.explanation}
+      </span>`;
+
+    // 4. Update motive fingerprint
+    document.querySelector('.motive-tag').innerText = analysis.intent;
+    document.querySelector('.motive-text').innerText =
+      `This content was classified as "${analysis.label}" with a truth score of ${analysis.truthScore}/100. ` +
+      `The detected intent pattern is: ${analysis.intent}.`;
+
+    // 5. Update virality score
+    document.querySelector('.score-big').innerText = virality.viralityScore;
+    document.querySelector('.score-label').innerText =
+      `out of 100 · ${virality.trend} risk`;
+    document.querySelector('.score-fill').style.width = `${virality.viralityScore}%`;
+
+    // 6. Update virality factors
+    const factorsContainer = document.querySelector('.score-factor').parentElement;
+    const oldFactors = factorsContainer.querySelectorAll('.score-factor');
+    oldFactors.forEach(f => f.remove());
+    virality.reasons.forEach(reason => {
+      const div = document.createElement('div');
+      div.className = 'score-factor';
+      div.innerText = reason;
+      factorsContainer.appendChild(div);
+    });
+
+    // 7. Update counter-narrative box
+    document.querySelector('.counter-box').innerHTML =
+      `<strong>${analysis.label.toUpperCase()}:</strong> ${analysis.explanation}`;
+
+    // 8. Show success toast
+    showToastMsg('Analysis Complete', `Label: ${analysis.label} · Virality: ${virality.trend} · Score: ${analysis.truthScore}/100`);
+  }
+
+  // ── TOAST SYSTEM ───────────────────────────────────────────────
+  function showToastMsg(title, desc) {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.innerHTML = `<div class="toast-title">${data.title}</div><div class="toast-desc">${data.desc}</div>`;
+    toast.innerHTML = `<div class="toast-title">${title}</div><div class="toast-desc">${desc}</div>`;
     container.appendChild(toast);
-    
     setTimeout(() => toast.classList.add('show'), 100);
     setTimeout(() => {
       toast.classList.remove('show');
@@ -1353,8 +1457,27 @@ footer span {
     }, 5000);
   }
 
-  setInterval(showToast, 60000); // 1 minute
-  setTimeout(showToast, 5000); // First toast quickly for demo
+  // Auto popups every 60 seconds
+  const popupMessages = [
+    { title: 'New Trend Detected', desc: 'A new viral video about banking is circulating.' },
+    { title: 'Fact Check Updated', desc: 'The "onion cure" claim has been updated with a new WHO statement.' },
+    { title: 'System Alert', desc: 'Deepfake analysis module updated to version 2.4.' }
+  ];
+  let msgIndex = 0;
+  function showToast() {
+    const data = popupMessages[msgIndex % popupMessages.length];
+    msgIndex++;
+    showToastMsg(data.title, data.desc);
+  }
+  setInterval(showToast, 60000);
+  setTimeout(showToast, 5000);
+
+  // Allow Enter key to trigger analysis
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('.search-section input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') startAnalysis();
+    });
+  });
 </script>
 </body>
 </html>
