@@ -72,22 +72,18 @@ header {
 }
 
 .logo-icon-wrapper {
-    width: 38px;
-    height: 38px;
-    overflow: hidden;
-    position: relative;
-    border-radius: 8px;
-    background: #fff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Adds a premium card-style look for the icon */
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
 }
 
 .logo-icon-wrapper img {
-    position: absolute;
-    width: 220%; /* Zooms in to crop the text and just show the shield */
-    height: auto;
-    top: -15%;   /* Positions the shield part in the center vertically */
-    left: -60%;  /* Centers it horizontally */
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Fits completely without cropping */
 }
 
 .logo h1 {
